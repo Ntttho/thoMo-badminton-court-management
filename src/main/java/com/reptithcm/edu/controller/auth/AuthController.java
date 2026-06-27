@@ -38,8 +38,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ApiResponse<String> logout(Authentication authentication) {
-        authService.logout(authentication);
+    public ApiResponse<String> logout(jakarta.servlet.http.HttpServletRequest request, Authentication authentication) {
+        authService.logout(request, authentication);
         return ApiResponse.success("Logout success");
     }
 

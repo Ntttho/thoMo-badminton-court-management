@@ -15,6 +15,7 @@ import com.reptithcm.edu.repository.RoleRepository;
 import com.reptithcm.edu.repository.UserRepository;
 import com.reptithcm.edu.security.TokenProvider;
 import com.reptithcm.edu.security.UserDetailsImpl;
+import com.reptithcm.edu.service.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +42,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final RedisService redisService;
 
     @Value("${app.jwt.refresh-expires-in-mili-seconds}")
     private Long refreshExpMs;
@@ -124,12 +127,23 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(Authentication authentication) {
+    public void logout(jakarta.servlet.http.HttpServletRequest request, Authentication authentication) {
         if (authentication != null) {
             String username = authentication.getName();
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
             refreshTokenRepository.deleteByUser(user);
+
+            // Blacklist Access Token
+            String accessToken = tokenProvider.getToken(request);
+            if (accessToken != null) {
+                try {
+                    redisService.set(accessToken, "blacklisted", accessExpMs, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    // Log error but allow logout to proceed
+                    System.err.println("Could not add token to Redis blacklist: " + e.getMessage());
+                }
+            }
         }
     }
 

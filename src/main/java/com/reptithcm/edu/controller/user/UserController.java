@@ -19,38 +19,38 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ApiResponse<Page<UserResponse>> getAllUsers(Pageable pageable) {
         return ApiResponse.success(userService.getAllUsers(pageable));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ApiResponse<UserResponse> getUserById(@PathVariable Long id) {
         return ApiResponse.success(userService.getUserById(id));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ApiResponse<UserResponse> updateUser(@PathVariable Long id, @RequestBody @Valid UserUpdateRequest request) {
         return ApiResponse.success(userService.updateUser(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ApiResponse<String> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ApiResponse.success("User disabled successfully");
     }
 
     @PostMapping("/{id}/role/{roleName}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ApiResponse<UserResponse> addRoleToUser(@PathVariable Long id, @PathVariable String roleName) {
         return ApiResponse.success(userService.addRoleToUser(id, roleName));
     }
 
     @PutMapping("/{id}/enable")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ApiResponse<String> enableUser(@PathVariable Long id) {
         userService.enableUser(id);
         return ApiResponse.success("User enabled successfully");

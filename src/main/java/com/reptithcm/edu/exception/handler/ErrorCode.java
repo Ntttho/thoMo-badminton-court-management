@@ -15,6 +15,9 @@ public enum ErrorCode {
     NOT_FOUND(404, "Not found"),
     INVALID_PASSWORD(1008, "Invalid password"),
     USER_DISABLED(1009, "User account is disabled"),
+    INVALID_REQUEST(1010, "Invalid request"),
+    BOOKING_CONFLICT(1011, "Court already has an active booking for this date and time slot"),
+    COURT_UNAVAILABLE(1012, "Court is unavailable"),
     ;
 
     private int code;

@@ -62,7 +62,10 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth ->
                     auth
                             .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh").permitAll()
+                            .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/clusters/**", "/api/v1/courts/**").permitAll()
+                            .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/users/*/bookings").hasRole("CUSTOMER")
                             .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
+                            .requestMatchers("/api/v1/clusters/**", "/api/v1/courts/**").hasRole("MANAGER")
                             .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
