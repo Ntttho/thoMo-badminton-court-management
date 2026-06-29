@@ -18,6 +18,7 @@ public enum ErrorCode {
     INVALID_REQUEST(1010, "Invalid request"),
     BOOKING_CONFLICT(1011, "Court already has an active booking for this date and time slot"),
     COURT_UNAVAILABLE(1012, "Court is unavailable"),
+    UPLOAD_FAILED(1013, "Image upload failed"),
     ;
 
     private int code;

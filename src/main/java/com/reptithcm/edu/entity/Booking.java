@@ -33,6 +33,9 @@ public class Booking {
     @Column(name = "booking_date")
     private LocalDate bookingDate;
 
+    @Column(name = "message")
+    private String message;
+
     @Column(length = 20)
-    private String status;
+    private String status; // PENDING, CONFIRMED, CANCELLED
 }

@@ -4,7 +4,6 @@ import com.reptithcm.edu.dto.request.auth.LoginRequest;
 import com.reptithcm.edu.dto.request.auth.RegisterRequest;
 import com.reptithcm.edu.dto.response.auth.RegisterResponse;
 import com.reptithcm.edu.dto.response.auth.TokenResponse;
-import com.reptithcm.edu.dto.response.user.UserResponse;
 import com.reptithcm.edu.entity.RefreshToken;
 import com.reptithcm.edu.entity.Role;
 import com.reptithcm.edu.entity.User;
@@ -14,7 +13,6 @@ import com.reptithcm.edu.repository.RefreshTokenRepository;
 import com.reptithcm.edu.repository.RoleRepository;
 import com.reptithcm.edu.repository.UserRepository;
 import com.reptithcm.edu.security.TokenProvider;
-import com.reptithcm.edu.security.UserDetailsImpl;
 import com.reptithcm.edu.service.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -111,7 +109,7 @@ public class AuthService {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         String refreshTokenString = createRefreshToken(username);
 
-        return TokenResponse.of(accessToken, refreshTokenString, accessExpMs / 1000);
+        return TokenResponse.of(accessToken, refreshTokenString, accessExpMs / (60 * 1000));
     }
 
     @Transactional
@@ -121,7 +119,7 @@ public class AuthService {
                 .map(RefreshToken::getUser)
                 .map(user -> {
                     String accessToken = tokenProvider.generateAccessTokenFromUsername(user.getUsername());
-                    return TokenResponse.of(accessToken, refreshToken, accessExpMs / 1000);
+                    return TokenResponse.of(accessToken, refreshToken, accessExpMs /(60 * 1000));
                 })
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
     }
@@ -137,12 +135,7 @@ public class AuthService {
             // Blacklist Access Token
             String accessToken = tokenProvider.getToken(request);
             if (accessToken != null) {
-                try {
-                    redisService.set(accessToken, "blacklisted", accessExpMs, TimeUnit.MILLISECONDS);
-                } catch (Exception e) {
-                    // Log error but allow logout to proceed
-                    System.err.println("Could not add token to Redis blacklist: " + e.getMessage());
-                }
+                redisService.set(accessToken, "blacklisted", accessExpMs, TimeUnit.MILLISECONDS);
             }
         }
     }

@@ -15,4 +15,5 @@ public class BookingResponse {
     private String timeSlot;
     private Double totalPrice;
     private String status;
+    private String message;
 }

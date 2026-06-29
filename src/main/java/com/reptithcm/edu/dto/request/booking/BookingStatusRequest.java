@@ -7,4 +7,5 @@ import lombok.Data;
 public class BookingStatusRequest {
     @NotBlank(message = "Status is required")
     private String status;
+    private String message;
 }

@@ -3,17 +3,23 @@ package com.reptithcm.edu.service.court;
 import com.reptithcm.edu.dto.request.court.CourtRequest;
 import com.reptithcm.edu.dto.response.court.CourtResponse;
 import com.reptithcm.edu.entity.BadmintonCluster;
+import com.reptithcm.edu.entity.Booking;
 import com.reptithcm.edu.entity.Court;
 import com.reptithcm.edu.entity.User;
 import com.reptithcm.edu.exception.handler.AppException;
 import com.reptithcm.edu.exception.handler.ErrorCode;
 import com.reptithcm.edu.repository.BadmintonClusterRepository;
+import com.reptithcm.edu.repository.BookingRepository;
 import com.reptithcm.edu.repository.CourtRepository;
+import com.reptithcm.edu.service.booking.BookingService;
+import com.reptithcm.edu.service.common.CloudinaryService;
 import com.reptithcm.edu.service.common.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +30,8 @@ public class CourtService {
     private final CourtRepository courtRepository;
     private final BadmintonClusterRepository clusterRepository;
     private final CurrentUserService currentUserService;
+    private final BookingRepository bookingRepository;
+    private final CloudinaryService cloudinaryService;
 
     public List<CourtResponse> getAllCourts() {
         return courtRepository.findAll().stream()
@@ -44,19 +52,25 @@ public class CourtService {
     }
 
     @Transactional
-    public CourtResponse createCourt(CourtRequest request) {
+    public CourtResponse createCourt(CourtRequest request, MultipartFile image) {
         User manager = currentUserService.getCurrentEnabledUser();
         BadmintonCluster cluster = clusterRepository.findById(request.getClusterId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
+        // check quyen truy cap cos phai chu cumj san khong
         if (cluster.getManager() == null || !cluster.getManager().getId().equals(manager.getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        String imageUrl = null;
+        if (image != null && !image.isEmpty()) {
+            imageUrl = cloudinaryService.uploadImage(image);
         }
 
         Court court = Court.builder()
                 .courtName(request.getCourtName())
                 .type(request.getType())
-                .imageUrl(request.getImageUrl())
+                .imageUrl(imageUrl)
                 .isAvailable(request.getIsAvailable() != null ? request.getIsAvailable() : true)
                 .cluster(cluster)
                 .build();
@@ -65,7 +79,7 @@ public class CourtService {
     }
 
     @Transactional
-    public CourtResponse updateCourt(Long id, CourtRequest request) {
+    public CourtResponse updateCourt(Long id, CourtRequest request, MultipartFile image) {
         User manager = currentUserService.getCurrentEnabledUser();
         Court court = courtRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
@@ -76,7 +90,19 @@ public class CourtService {
 
         court.setCourtName(request.getCourtName());
         court.setType(request.getType());
-        court.setImageUrl(request.getImageUrl());
+        
+        if (image != null && !image.isEmpty()) {
+            // Delete old image if exists
+            if (court.getImageUrl() != null) {
+                String publicId = cloudinaryService.extractPublicId(court.getImageUrl());
+                if (publicId != null) {
+                    cloudinaryService.deleteImage(publicId);
+                }
+            }
+            // Upload new image
+            String newImageUrl = cloudinaryService.uploadImage(image);
+            court.setImageUrl(newImageUrl);
+        }
         if (request.getIsAvailable() != null) {
             court.setIsAvailable(request.getIsAvailable());
         }
@@ -92,6 +118,15 @@ public class CourtService {
 
         if (court.getCluster() == null || court.getCluster().getManager() == null || !court.getCluster().getManager().getId().equals(manager.getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // kiểm tra booking
+        List<Booking> bookingsExist = bookingRepository.findByCourtId(id).stream().filter(book ->
+                book.getStatus().equals("SUCCESS") && book.getBookingDate().isBefore(LocalDate.now())
+        ).toList();
+
+        if(!bookingsExist.isEmpty()){
+            throw new AppException(ErrorCode.INVALID_REQUEST.getCode(), "Cannot delete a court that already has bookings");
         }
 
         courtRepository.delete(court);

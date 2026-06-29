@@ -14,10 +14,9 @@ public class CourtRequest {
     @Size(max = 50, message = "Court type must be at most 50 characters")
     private String type;
 
-    @Size(max = 255, message = "Image URL must be at most 255 characters")
-    private String imageUrl;
 
-    private Boolean isAvailable;
+
+    private Boolean isAvailable = true;
 
     @NotNull(message = "Cluster id is required")
     private Long clusterId;

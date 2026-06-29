@@ -54,16 +54,13 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             // 2. kiem tra token hop le
             if(StringUtils.hasText(token) && tokenProvider.validateToken(token)){
                 // CHECK REDIS BLACKLIST
-                try {
-                    if (Boolean.TRUE.equals(redisService.hasKey(token))) {
-                        logger.warn("Token is in blacklist: {}", token);
-                        // Neu token bi blacklist, tra ve 401 ngay lap tuc
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        response.getWriter().write("Token is blacklisted");
-                        return;
-                    }
-                } catch (Exception e) {
-                    logger.error("Redis connection error, skipping blacklist check: {}", e.getMessage());
+                if (Boolean.TRUE.equals(redisService.hasKey(token))) {
+                    logger.warn("Token is in blacklist: {}", token);
+                    // Neu token bi blacklist, tra ve 401 ngay lap tuc
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\": \"Token has been logged out\"}");
+                    return;
                 }
 
                 // 3. lay thong tin user tu token

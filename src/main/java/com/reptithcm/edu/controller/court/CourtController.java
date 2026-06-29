@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 
@@ -33,16 +35,21 @@ public class CourtController {
         return ApiResponse.success(courtService.getCourtsByCluster(clusterId));
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('ROLE_MANAGER')")
-    public ApiResponse<CourtResponse> createCourt(@RequestBody @Valid CourtRequest request) {
-        return ApiResponse.success(courtService.createCourt(request));
+    public ApiResponse<CourtResponse> createCourt(
+            @RequestPart("data") @Valid CourtRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        return ApiResponse.success(courtService.createCourt(request, image));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('ROLE_MANAGER')")
-    public ApiResponse<CourtResponse> updateCourt(@PathVariable Long id, @RequestBody @Valid CourtRequest request) {
-        return ApiResponse.success(courtService.updateCourt(id, request));
+    public ApiResponse<CourtResponse> updateCourt(
+            @PathVariable Long id, 
+            @RequestPart("data") @Valid CourtRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        return ApiResponse.success(courtService.updateCourt(id, request, image));
     }
 
     @DeleteMapping("/{id}")

@@ -12,6 +12,8 @@ import com.reptithcm.edu.repository.CourtRepository;
 import com.reptithcm.edu.repository.UserRepository;
 import com.reptithcm.edu.service.common.CurrentUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +35,17 @@ public class BookingService {
         Court court = courtRepository.findById(request.getCourtId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
-        if (Boolean.FALSE.equals(court.getIsAvailable())) {
+        if (!court.getIsAvailable()) {
+            // court có hoạt động không
             throw new AppException(ErrorCode.INVALID_REQUEST.getCode(), "Court is not available");
         }
 
-        boolean exists = bookingRepository.existsByCourtAndBookingDateAndTimeSlotAndStatusNot(
-                court, request.getBookingDate(), request.getTimeSlot(), "CANCELLED"
+        // Sân được chọn
+        // Ngày đặt sân
+        // Khung giờ đặt sân
+        // status ==
+        boolean exists = bookingRepository.existsByCourtAndBookingDateAndTimeSlotAndStatus(
+                court, request.getBookingDate(), request.getTimeSlot(), "CONFIRMED"
         );
 
         if (exists) {
@@ -51,38 +58,40 @@ public class BookingService {
                 .bookingDate(request.getBookingDate())
                 .timeSlot(request.getTimeSlot())
                 .status("PENDING")
+                .message("")
                 .totalPrice(100.0)
                 .build();
 
         return mapToBookingResponse(bookingRepository.save(booking));
     }
 
-    public List<BookingResponse> getMyBookings() {
+    public Page<BookingResponse> getMyBookings(int page, int size) {
         User user = currentUserService.getCurrentEnabledUser();
-        return bookingRepository.findByUser(user).stream()
-                .map(this::mapToBookingResponse)
-                .toList();
+        return bookingRepository.findByUser(user, PageRequest.of(page, size))
+                .map(this::mapToBookingResponse);
     }
 
-    public List<BookingResponse> getAllBookingsForManager() {
+    public Page<BookingResponse> getAllBookingsForManager(int page, int size) {
         User manager = currentUserService.getCurrentEnabledUser();
-        return bookingRepository.findAll().stream()
-                .filter(b -> b.getCourt() != null && b.getCourt().getCluster() != null && b.getCourt().getCluster().getManager() != null && b.getCourt().getCluster().getManager().getId().equals(manager.getId()))
-                .map(this::mapToBookingResponse)
-                .toList();
+        return bookingRepository.findAll(manager.getId(), PageRequest.of(page, size))
+                .map(this::mapToBookingResponse);
     }
 
     @Transactional
-    public BookingResponse updateStatus(Long id, String status) {
+    public BookingResponse updateStatus(Long id, String status, String message) {
         User manager = currentUserService.getCurrentEnabledUser();
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+        if (booking.getStatus().equals("CONFIRMED")) {
+            throw new AppException(ErrorCode.INVALID_REQUEST.getCode(), "Booking has already been confirmed");
+        }
 
         if (booking.getCourt() == null || booking.getCourt().getCluster() == null || booking.getCourt().getCluster().getManager() == null || !booking.getCourt().getCluster().getManager().getId().equals(manager.getId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
         booking.setStatus(status);
+        booking.setMessage(message);
         return mapToBookingResponse(bookingRepository.save(booking));
     }
 
@@ -96,6 +105,7 @@ public class BookingService {
                 .timeSlot(booking.getTimeSlot())
                 .totalPrice(booking.getTotalPrice())
                 .status(booking.getStatus())
+                .message(booking.getMessage())
                 .build();
     }
 }

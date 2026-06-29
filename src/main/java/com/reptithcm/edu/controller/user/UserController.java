@@ -7,6 +7,7 @@ import com.reptithcm.edu.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +21,11 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ApiResponse<Page<UserResponse>> getAllUsers(Pageable pageable) {
-        return ApiResponse.success(userService.getAllUsers(pageable));
+    public ApiResponse<Page<UserResponse>> getAllUsers(
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10") int size
+    ) {
+        return ApiResponse.success(userService.getAllUsers(PageRequest.of(page, size)));
     }
 
     @GetMapping("/{id}")

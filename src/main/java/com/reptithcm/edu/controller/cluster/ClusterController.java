@@ -6,6 +6,7 @@ import com.reptithcm.edu.dto.response.cluster.ClusterResponse;
 import com.reptithcm.edu.service.cluster.ClusterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +20,9 @@ public class ClusterController {
     private final ClusterService clusterService;
 
     @GetMapping
-    public ApiResponse<List<ClusterResponse>> getAllClusters() {
-        return ApiResponse.success(clusterService.getAllClusters());
+    public ApiResponse<Page<ClusterResponse>> getAllClusters(@RequestParam(value = "page", defaultValue = "0", required = false) int page,
+                                                             @RequestParam(value = "size", defaultValue = "10", required = false) int size) {
+        return ApiResponse.success(clusterService.getAllClusters(page, size));
     }
 
     @GetMapping("/{id}")
@@ -30,8 +32,11 @@ public class ClusterController {
 
     @GetMapping("/my-clusters")
     @PreAuthorize("hasAuthority('ROLE_MANAGER')")
-    public ApiResponse<List<ClusterResponse>> getMyClusters() {
-        return ApiResponse.success(clusterService.getMyClusters());
+    public ApiResponse<Page<ClusterResponse>> getMyClusters(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size
+    ) {
+        return ApiResponse.success(clusterService.getMyClusters(page, size));
     }
 
     @PostMapping
