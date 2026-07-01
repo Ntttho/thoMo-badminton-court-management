@@ -2,8 +2,11 @@ package com.reptithcm.edu.service.auth;
 
 import com.reptithcm.edu.dto.request.auth.LoginRequest;
 import com.reptithcm.edu.dto.request.auth.RegisterRequest;
+import com.reptithcm.edu.dto.request.user.ChangePassRequest;
+import com.reptithcm.edu.dto.request.user.ForgetPasswordRequest;
 import com.reptithcm.edu.dto.response.auth.RegisterResponse;
 import com.reptithcm.edu.dto.response.auth.TokenResponse;
+import com.reptithcm.edu.dto.response.user.ForgetPasswordResponse;
 import com.reptithcm.edu.entity.RefreshToken;
 import com.reptithcm.edu.entity.Role;
 import com.reptithcm.edu.entity.User;
@@ -13,6 +16,7 @@ import com.reptithcm.edu.repository.RefreshTokenRepository;
 import com.reptithcm.edu.repository.RoleRepository;
 import com.reptithcm.edu.repository.UserRepository;
 import com.reptithcm.edu.security.TokenProvider;
+import com.reptithcm.edu.service.common.CurrentUserService;
 import com.reptithcm.edu.service.redis.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +28,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +47,7 @@ public class AuthService {
     private final TokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
     private final RedisService redisService;
+    private final CurrentUserService currentUserService;
 
     @Value("${app.jwt.refresh-expires-in-mili-seconds}")
     private Long refreshExpMs;
@@ -168,5 +175,33 @@ public class AuthService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
         return token;
+    }
+
+
+    @Transactional
+    public void changePassword(ChangePassRequest request){
+        User user = currentUserService.getCurrentEnabledUser();
+        if(!passwordEncoder.matches(user.getPassword(), request.getOldPassword())){
+            throw new AppException(ErrorCode.INVALID_PASSWORD);
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public ForgetPasswordResponse forgetPassword(ForgetPasswordRequest request){
+        User user = userRepository.findByUsernameAndEmailAndPhoneNumber(request.getUsername(), request.getEmail(), request.getPhoneNumber())
+                .orElseThrow(
+                        () -> new AppException(ErrorCode.USER_NOT_EXISTED)
+                );
+
+        byte[] array = new byte[7]; // length is bounded by 7
+        new Random().nextBytes(array);
+        String newPassword = new String(array, Charset.forName("UTF-8"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        userRepository.save(user);
+        return new ForgetPasswordResponse(newPassword);
     }
 }

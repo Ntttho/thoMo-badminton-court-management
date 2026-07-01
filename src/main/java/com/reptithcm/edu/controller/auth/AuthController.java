@@ -5,9 +5,12 @@ import com.reptithcm.edu.dto.request.auth.LoginRequest;
 import com.reptithcm.edu.dto.request.auth.LogoutRequest;
 import com.reptithcm.edu.dto.request.auth.RefreshTokenRequest;
 import com.reptithcm.edu.dto.request.auth.RegisterRequest;
+import com.reptithcm.edu.dto.request.user.ChangePassRequest;
+import com.reptithcm.edu.dto.request.user.ForgetPasswordRequest;
 import com.reptithcm.edu.dto.response.ApiResponse;
 import com.reptithcm.edu.dto.response.auth.RegisterResponse;
 import com.reptithcm.edu.dto.response.auth.TokenResponse;
+import com.reptithcm.edu.dto.response.user.ForgetPasswordResponse;
 import com.reptithcm.edu.entity.User;
 import com.reptithcm.edu.service.auth.AuthService;
 import jakarta.validation.Valid;
@@ -49,4 +52,14 @@ public class AuthController {
         return ApiResponse.success(authService.getStatus(username));
     }
 
+    @PostMapping("/forget-password")
+    public ApiResponse<ForgetPasswordResponse> forgetPassword(@RequestBody ForgetPasswordRequest request){
+        return ApiResponse.success(authService.forgetPassword(request));
+    }
+
+    @PostMapping("/change-password")
+    public ApiResponse<?> changePassword(@RequestBody ChangePassRequest request){
+        authService.changePassword(request);
+        return ApiResponse.success("Change your password success");
+    }
 }
